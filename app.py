@@ -246,10 +246,13 @@ with st.sidebar:
 
     if kb_uploader:
         existing_names = {f[0] for f in st.session_state.kb_files}
-        for f in kb_uploader:
-            if f.name not in existing_names:
-                st.session_state.kb_files.append((f.name, f.read()))
-                existing_names.add(f.name)
+        nuevos = [f for f in kb_uploader if f.name not in existing_names]
+        if nuevos:
+            if st.button(f"✅ Cargar {len(nuevos)} archivo(s) a la base de datos", use_container_width=True):
+                for f in nuevos:
+                    st.session_state.kb_files.append((f.name, f.read()))
+                st.success(f"{len(nuevos)} archivo(s) cargados.")
+                st.rerun()
 
     if st.session_state.kb_files:
         st.markdown(f"**{len(st.session_state.kb_files)} proyecto(s) cargado(s):**")
