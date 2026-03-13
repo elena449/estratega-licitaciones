@@ -188,9 +188,22 @@ Directrices de Interacción:
 - Mantén siempre un tono profesional y analítico.
 - Responde siempre en español."""
 
+# ─── Auto-load knowledge base from folder ───────────────────────────────────
+KB_FOLDER = Path(__file__).parent / "knowledge_base"
+
+def load_kb_from_folder():
+    files = []
+    if KB_FOLDER.exists():
+        for pdf_path in sorted(KB_FOLDER.glob("*.pdf")):
+            try:
+                files.append((pdf_path.name, pdf_path.read_bytes()))
+            except Exception:
+                pass
+    return files
+
 # ─── Session state init ──────────────────────────────────────────────────────
 if "kb_files" not in st.session_state:
-    st.session_state.kb_files = []          # list of (name, bytes)
+    st.session_state.kb_files = load_kb_from_folder()
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []      # list of {"role": ..., "content": ...}
 if "report_generated" not in st.session_state:
@@ -234,37 +247,15 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🗂️ Base de Datos de Proyectos")
-    st.caption("Sube aquí los PDFs de proyectos pasados de Chakakuna. Se mantienen durante toda la sesión.")
-
-    kb_uploader = st.file_uploader(
-        "Agregar proyectos a la base de datos",
-        type="pdf",
-        accept_multiple_files=True,
-        key="kb_uploader",
-        label_visibility="collapsed"
-    )
-
-    if kb_uploader:
-        existing_names = {f[0] for f in st.session_state.kb_files}
-        nuevos = [f for f in kb_uploader if f.name not in existing_names]
-        if nuevos:
-            if st.button(f"✅ Cargar {len(nuevos)} archivo(s) a la base de datos", use_container_width=True):
-                for f in nuevos:
-                    st.session_state.kb_files.append((f.name, f.read()))
-                st.success(f"{len(nuevos)} archivo(s) cargados.")
-                st.rerun()
-
-    if st.session_state.kb_files:
-        st.markdown(f"**{len(st.session_state.kb_files)} proyecto(s) cargado(s):**")
-        for name, _ in st.session_state.kb_files:
-            st.markdown(f"✅ {name[:35]}{'...' if len(name)>35 else ''}")
-        if st.button("🗑️ Limpiar base de datos", use_container_width=True):
-            st.session_state.kb_files = []
-            st.session_state.report_generated = False
-            st.session_state.chat_history = []
-            st.rerun()
+    n_kb = len(st.session_state.kb_files)
+    if n_kb > 0:
+        st.success(f"✅ {n_kb} proyectos cargados automáticamente")
+        with st.expander("Ver proyectos", expanded=False):
+            for name, _ in st.session_state.kb_files:
+                st.caption(f"• {name[:40]}{'...' if len(name)>40 else ''}")
     else:
-        st.info("Aún no hay proyectos cargados.")
+        st.warning("No se encontraron proyectos en la carpeta knowledge_base/.")
+        st.caption("Contacta al administrador para actualizar la base de datos.")
 
     st.markdown("---")
     st.caption("Chakakuna · Estratega de Licitaciones v1.0")
@@ -462,3 +453,4 @@ with tab2:
                     st.rerun()
                 except Exception as e:
                     st.error(f"Error: {str(e)}")
+
